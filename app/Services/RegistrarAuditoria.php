@@ -66,11 +66,35 @@ class RegistrarAuditoria
         foreach ($valores as $campo => $valor) {
             if (in_array(mb_strtolower((string) $campo), $camposProhibidos, true)) {
                 unset($valores[$campo]);
+            } elseif (in_array(mb_strtolower((string) $campo), [
+                'documento_identidad',
+                'numero_documento',
+                'numero_de_documento',
+            ], true)) {
+                $valores[$campo] = $this->enmascararDocumento($valor);
+            } elseif (mb_strtolower((string) $campo) === 'direccion') {
+                $valores[$campo] = $valor === null ? null : '[ENMASCARADA]';
             } elseif (is_array($valor)) {
                 $valores[$campo] = $this->filtrarValoresSensibles($valor);
             }
         }
 
         return $valores;
+    }
+
+    private function enmascararDocumento(mixed $documento): ?string
+    {
+        if ($documento === null || $documento === '') {
+            return null;
+        }
+
+        $documento = (string) $documento;
+        $longitud = mb_strlen($documento);
+
+        if ($longitud <= 4) {
+            return str_repeat('*', $longitud);
+        }
+
+        return str_repeat('*', $longitud - 4).mb_substr($documento, -4);
     }
 }

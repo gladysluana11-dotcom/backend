@@ -51,6 +51,11 @@ class AcademicoPolicy
         return $this->permite($usuario, 'academico.crear');
     }
 
+    public function createAssignment(Usuario $usuario): bool
+    {
+        return $this->permite($usuario, 'academico.editar');
+    }
+
     public function import(Usuario $usuario): bool
     {
         return $this->permite($usuario, 'academico.importar');

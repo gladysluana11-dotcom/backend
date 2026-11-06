@@ -7,6 +7,7 @@ use App\Models\Concerns\BelongsToColegio;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Seccion extends Model
 {
@@ -47,6 +48,16 @@ class Seccion extends Model
     public function anioEscolar(): BelongsTo
     {
         return $this->belongsTo(AnioEscolar::class, 'anio_escolar_id');
+    }
+
+    public function matriculas(): HasMany
+    {
+        return $this->hasMany(Matricula::class, 'seccion_id');
+    }
+
+    public function asignacionesUsuarios(): HasMany
+    {
+        return $this->hasMany(AsignacionSeccion::class, 'seccion_id');
     }
 
     /**

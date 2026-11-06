@@ -44,9 +44,11 @@ trait Auditable
             }
 
             $anteriores = array_intersect_key($model->getOriginal(), $cambios);
-            $evento = match ($cambios['activo'] ?? null) {
-                false, 0, '0' => $model->entidadAuditable().'.desactivado',
-                true, 1, '1' => $model->entidadAuditable().'.reactivado',
+            $evento = match (true) {
+                ($cambios['estado'] ?? null) === 'retirado' => $model->entidadAuditable().'.retirado',
+                array_key_exists('estado', $cambios) => $model->entidadAuditable().'.estado_actualizado',
+                in_array($cambios['activo'] ?? null, [false, 0, '0'], true) => $model->entidadAuditable().'.desactivado',
+                in_array($cambios['activo'] ?? null, [true, 1, '1'], true) => $model->entidadAuditable().'.reactivado',
                 default => $model->entidadAuditable().'.actualizado',
             };
 

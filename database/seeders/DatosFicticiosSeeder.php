@@ -2,13 +2,19 @@
 
 namespace Database\Seeders;
 
+use App\Models\Alumno;
 use App\Models\AnioEscolar;
+use App\Models\Apoderado;
 use App\Models\AsignacionDocente;
+use App\Models\AsignacionSeccion;
 use App\Models\Colegio;
 use App\Models\ConfiguracionColegio;
 use App\Models\Curso;
 use App\Models\FuncionColegio;
 use App\Models\Grado;
+use App\Models\HistorialEstadoAlumno;
+use App\Models\HistorialMatricula;
+use App\Models\Matricula;
 use App\Models\Nivel;
 use App\Models\Periodo;
 use App\Models\Seccion;
@@ -218,6 +224,116 @@ class DatosFicticiosSeeder extends Seeder
             ],
             ['docente_id' => $docente->id, 'activo' => true],
         );
+
+        AsignacionSeccion::query()->firstOrCreate(
+            [
+                'colegio_id' => $colegio->id,
+                'anio_escolar_id' => $anio->id,
+                'seccion_id' => $seccionPrimaria->id,
+                'usuario_id' => $docente->id,
+            ],
+            ['activo' => true],
+        );
+
+        $nombres = [
+            'Alma', 'Bruno', 'Carla', 'Dario', 'Elena', 'Fabian', 'Gabriela', 'Hugo', 'Ines', 'Javier',
+            'Kiara', 'Leonardo', 'Marina', 'Nicolas', 'Olivia', 'Pablo', 'Renata', 'Samuel', 'Tamara', 'Victor',
+        ];
+        $apellidos = [
+            'Rios', 'Salas', 'Vega', 'Paredes', 'Campos', 'Reyes', 'Flores', 'Mendoza', 'Castro', 'Rojas',
+            'Soto', 'Cruz', 'Silva', 'Navarro', 'Herrera', 'Vargas', 'Medina', 'Aguilar', 'Lopez', 'Torres',
+        ];
+        $secciones = Seccion::query()
+            ->where('colegio_id', $colegio->id)
+            ->where('anio_escolar_id', $anio->id)
+            ->where('activo', true)
+            ->with('grado:id,nombre')
+            ->orderBy('id')
+            ->get();
+        $director = Usuario::query()->where('email', 'director@salesian-innova.test')->firstOrFail();
+
+        for ($indice = 0; $indice < 40; $indice++) {
+            $apellido = $apellidos[$indice % count($apellidos)];
+            $alumno = Alumno::query()->firstOrCreate(
+                [
+                    'colegio_id' => $colegio->id,
+                    'documento_identidad' => (string) (90000000 + $indice + 1),
+                ],
+                [
+                    'nombre' => $nombres[$indice % count($nombres)],
+                    'apellido' => $apellido,
+                    'tipo_documento' => 'DNI',
+                    'fecha_nacimiento' => sprintf('%04d-%02d-%02d', 2010 + ($indice % 7), ($indice % 12) + 1, ($indice % 27) + 1),
+                    'sexo' => $indice % 2 === 0 ? 'F' : 'M',
+                    'direccion' => 'Dirección ficticia '.($indice + 1),
+                    'estado' => 'activo',
+                    'activo' => true,
+                ],
+            );
+
+            if ($alumno->wasRecentlyCreated) {
+                HistorialEstadoAlumno::query()->create([
+                    'colegio_id' => $colegio->id,
+                    'alumno_id' => $alumno->id,
+                    'estado_anterior' => null,
+                    'estado_nuevo' => 'activo',
+                    'fecha' => '2026-03-02',
+                    'usuario_id' => $director->id,
+                ]);
+            }
+
+            $grupoApoderado = intdiv($indice, 4);
+            $apoderado = Apoderado::query()->firstOrCreate(
+                [
+                    'colegio_id' => $colegio->id,
+                    'nombre' => 'Apoderado Ficticio '.($grupoApoderado + 1),
+                    'apellido' => 'Familia '.($grupoApoderado + 1),
+                ],
+            );
+            $alumno->apoderados()->syncWithoutDetaching([
+                $apoderado->id => [
+                    'colegio_id' => $colegio->id,
+                    'parentesco' => 'Madre',
+                    'telefono' => (string) (900000000 + $grupoApoderado + 1),
+                    'email' => 'apoderado'.str_pad((string) ($grupoApoderado + 1), 2, '0', STR_PAD_LEFT).'@ejemplo.test',
+                    'responsable_pago' => true,
+                ],
+            ]);
+
+            if ($secciones->isEmpty()) {
+                continue;
+            }
+
+            $seccion = $secciones[$indice % $secciones->count()];
+            $matricula = Matricula::query()->firstOrCreate(
+                [
+                    'colegio_id' => $colegio->id,
+                    'alumno_id' => $alumno->id,
+                    'anio_escolar_id' => $anio->id,
+                ],
+                [
+                    'grado_id' => $seccion->grado_id,
+                    'seccion_id' => $seccion->id,
+                    'usuario_id' => $director->id,
+                    'anio_escolar' => $anio->nombre,
+                    'grado' => $seccion->grado->nombre,
+                    'seccion' => $seccion->nombre,
+                    'fecha_matricula' => '2026-03-02',
+                    'estado' => 'matriculado',
+                ],
+            );
+
+            if ($matricula->wasRecentlyCreated) {
+                HistorialMatricula::query()->create([
+                    'colegio_id' => $colegio->id,
+                    'matricula_id' => $matricula->id,
+                    'evento' => 'creada',
+                    'estado_nuevo' => 'matriculado',
+                    'fecha' => '2026-03-02',
+                    'usuario_id' => $director->id,
+                ]);
+            }
+        }
 
         setPermissionsTeamId(null);
     }
