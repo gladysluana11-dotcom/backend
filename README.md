@@ -29,6 +29,30 @@ In addition, [Laracasts](https://laracasts.com) contains thousands of video tuto
 
 You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
 
+## Desarrollo del backend SGE
+
+El backend requiere PHP 8.3 o superior y MySQL 8. Crea las bases de datos `sge_dev` y `sge_test`, copia `.env.example` a `.env`, configura las credenciales de MySQL y ejecuta:
+
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+```
+
+La API queda disponible en `http://localhost:8000/api/v1`. La SPA local debe usar `http://localhost:5173`, que está configurado como origen stateful de Sanctum. La documentación OpenAPI está disponible en `/docs/api` solo cuando `APP_ENV=local`.
+En desarrollo local, el login debe enviar `subdominio` (por ejemplo, `salesian-innova`); en los subdominios reales se valida contra el origen de la SPA.
+
+Los usuarios ficticios del seeder usan la contraseña `Password123!`; sus cuentas están en `database/seeders/DatosFicticiosSeeder.php`. No se deben cargar datos reales en este entorno.
+
+Las pruebas usan la base `sge_test` configurada en `phpunit.xml`. Ejecuta las verificaciones con:
+
+```powershell
+vendor\bin\pest.bat
+vendor\bin\pint.bat --test
+vendor\bin\phpstan.bat analyse
+```
+
 ## Agentic Development
 
 Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
