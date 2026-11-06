@@ -95,11 +95,14 @@ class DatosFicticiosSeeder extends Seeder
                     'apellido' => $apellido,
                     'password' => Hash::make('Password123!'),
                     'activo' => true,
+                    'requiere_cambio_contrasena' => true,
                 ],
             );
 
             if ($usuario->wasRecentlyCreated) {
                 $usuario->forceFill(['colegio_id' => $colegioId])->save();
+            } elseif (! $usuario->requiere_cambio_contrasena) {
+                $usuario->forceFill(['requiere_cambio_contrasena' => true])->save();
             }
 
             setPermissionsTeamId($colegioId);

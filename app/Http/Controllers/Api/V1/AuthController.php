@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Http\Requests\CambiarContrasenaRequest;
 use App\Models\Colegio;
 use App\Models\Usuario;
+use App\Services\RegistrarAuditoria;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +19,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController
 {
+    public function __construct(private RegistrarAuditoria $registrarAuditoria) {}
+
     public function login(Request $request): JsonResponse
     {
         return $this->authenticate($request, false);
@@ -50,6 +54,30 @@ class AuthController
         return response()->json([
             'message' => 'Sesión cerrada correctamente.',
             'data' => null,
+            'errors' => null,
+            'code' => 'OK',
+        ]);
+    }
+
+    public function cambiarContrasena(CambiarContrasenaRequest $request): JsonResponse
+    {
+        $usuario = $request->user();
+
+        if (! $usuario instanceof Usuario) {
+            throw new \LogicException('La solicitud autenticada debe pertenecer a un usuario.');
+        }
+
+        $datos = $request->validated();
+        $usuario->forceFill([
+            'password' => $datos['contrasena'],
+            'requiere_cambio_contrasena' => false,
+        ])->save();
+
+        return response()->json([
+            'message' => 'La contraseña se cambió correctamente.',
+            'data' => [
+                'usuario' => $this->usuarioData($usuario->refresh()),
+            ],
             'errors' => null,
             'code' => 'OK',
         ]);
@@ -129,6 +157,8 @@ class AuthController
         $usuario = Usuario::query()->where('email', $email)->first();
 
         if ($usuario?->bloqueado_hasta?->isFuture()) {
+            $this->auditarLoginFallido($request, $usuario, $validated['subdominio'] ?? null, 'cuenta_bloqueada');
+
             return $this->error('La cuenta está bloqueada temporalmente. Intenta nuevamente más tarde.', 'ACCOUNT_LOCKED', 423);
         }
 
@@ -140,7 +170,24 @@ class AuthController
         }
 
         if (! $usuario || ! Hash::check($validated['password'], $usuario->password)) {
-            if ($usuario && $this->registrarIntentoFallido($usuario)) {
+            $bloqueado = $usuario && $this->registrarIntentoFallido($usuario);
+            $this->auditarLoginFallido(
+                $request,
+                $usuario,
+                $validated['subdominio'] ?? null,
+                'credenciales_invalidas',
+            );
+
+            if ($bloqueado) {
+                $this->registrarAuditoria->registrar(
+                    'auth.cuenta_bloqueada',
+                    'autenticacion',
+                    $usuario->id,
+                    valoresNuevos: ['intentos_fallidos' => $usuario->fresh()->intentos_fallidos],
+                    usuario: $usuario,
+                    colegioId: $usuario->colegio_id,
+                );
+
                 return $this->error('La cuenta está bloqueada temporalmente. Intenta nuevamente más tarde.', 'ACCOUNT_LOCKED', 423);
             }
 
@@ -148,10 +195,14 @@ class AuthController
         }
 
         if (! $usuario->activo) {
+            $this->auditarLoginFallido($request, $usuario, $validated['subdominio'] ?? null, 'usuario_desactivado');
+
             return $this->error('El usuario está desactivado.', 'USER_INACTIVE', 403);
         }
 
         if (! $this->perteneceAlSubdominio($request, $usuario, $validated['subdominio'] ?? null)) {
+            $this->auditarLoginFallido($request, $usuario, $validated['subdominio'] ?? null, 'colegio_no_coincide');
+
             return $this->error('Credenciales inválidas.', 'INVALID_CREDENTIALS', 401);
         }
 
@@ -165,8 +216,18 @@ class AuthController
         } else {
             Auth::guard('web')->login($usuario, $request->boolean('remember'));
             $request->session()->regenerate();
+            $request->session()->put('actividad_ultima_vez', now()->timestamp);
             $token = null;
         }
+
+        $this->registrarAuditoria->registrar(
+            'auth.login_exitoso',
+            'autenticacion',
+            $usuario->id,
+            valoresNuevos: ['metodo' => $issueToken ? 'token' : 'sesion'],
+            usuario: $usuario,
+            colegioId: $usuario->colegio_id,
+        );
 
         return response()->json([
             'message' => 'Inicio de sesión correcto.',
@@ -192,6 +253,29 @@ class AuthController
 
             return $intentos >= 5;
         });
+    }
+
+    private function auditarLoginFallido(
+        Request $request,
+        ?Usuario $usuario,
+        ?string $subdominio,
+        string $motivo,
+    ): void {
+        $subdominio ??= $this->subdominioDesdeOrigen($request);
+        $colegioId = $usuario?->colegio_id;
+
+        if ($colegioId === null && $subdominio !== null) {
+            $colegioId = Colegio::query()->where('subdominio', $subdominio)->value('id');
+        }
+
+        $this->registrarAuditoria->registrar(
+            'auth.login_fallido',
+            'autenticacion',
+            $usuario?->id,
+            valoresNuevos: ['motivo' => $motivo],
+            usuario: $usuario,
+            colegioId: $colegioId,
+        );
     }
 
     private function perteneceAlSubdominio(Request $request, Usuario $usuario, ?string $subdominio): bool
@@ -235,7 +319,7 @@ class AuthController
     }
 
     /**
-     * @return array{id: int, nombre: string, apellido: string, email: string, colegio_id: ?int, roles: list<string>}
+     * @return array{id: int, nombre: string, apellido: string, email: string, colegio_id: ?int, roles: list<string>, requiere_cambio_contrasena: bool}
      */
     private function usuarioData(Usuario $usuario): array
     {
@@ -249,6 +333,7 @@ class AuthController
                 'email' => $usuario->email,
                 'colegio_id' => $usuario->colegio_id,
                 'roles' => $usuario->getRoleNames()->all(),
+                'requiere_cambio_contrasena' => $usuario->requiere_cambio_contrasena,
             ];
         } finally {
             setPermissionsTeamId(null);

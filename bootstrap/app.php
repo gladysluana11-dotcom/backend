@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Middleware\ControlarInactividadSpa;
 use App\Http\Middleware\EstablecerEquipoDePermisos;
+use App\Http\Middleware\RequiereCambioContrasena;
+use App\Http\Middleware\VerificarUsuarioActivo;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -24,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
         $middleware->alias([
             'equipo.permisos' => EstablecerEquipoDePermisos::class,
+            'sesion.inactiva' => ControlarInactividadSpa::class,
+            'contrasena.obligatoria' => RequiereCambioContrasena::class,
+            'usuario.activo' => VerificarUsuarioActivo::class,
             'permission' => PermissionMiddleware::class,
             'role' => RoleMiddleware::class,
         ]);

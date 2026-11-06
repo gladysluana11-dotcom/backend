@@ -45,6 +45,25 @@ En desarrollo local, el login debe enviar `subdominio` (por ejemplo, `salesian-i
 
 Los usuarios ficticios del seeder usan la contraseña `Password123!`; sus cuentas están en `database/seeders/DatosFicticiosSeeder.php`. No se deben cargar datos reales en este entorno.
 
+### Usuarios, roles y auditoría (B2)
+
+Todos los endpoints requieren autenticación, salvo los de acceso y recuperación. Los usuarios solo pueden ser gestionados por Director y Administrador dentro de su colegio:
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/v1/usuarios?buscar=&rol=&estado=activo&per_page=25&page=1` | Lista paginada; `estado` acepta `activo` o `inactivo` y `per_page` no supera 100. |
+| POST | `/api/v1/usuarios` | Crea usuario con `nombre`, `apellido`, `email` y `rol`. Devuelve una contraseña temporal de un solo uso; el primer ingreso exige cambiarla. |
+| GET | `/api/v1/usuarios/{id}` | Consulta un usuario del colegio autenticado. |
+| PATCH | `/api/v1/usuarios/{id}` | Actualiza datos o rol, respetando la jerarquía. |
+| POST | `/api/v1/usuarios/{id}/desactivar` | Desactiva sin eliminar y revoca sus tokens móviles; no permite auto-desactivación ni dejar al colegio sin Administrador activo. |
+| POST | `/api/v1/usuarios/{id}/reactivar` | Reactiva una cuenta desactivada. |
+| POST | `/api/v1/auth/cambiar-contrasena` | Recibe `contrasena_actual`, `contrasena` y `contrasena_confirmation`; la nueva clave requiere al menos 10 caracteres. |
+| GET | `/api/v1/roles` | Catálogo de roles y permisos asignados en el colegio. |
+| GET | `/api/v1/permisos` | Catálogo de permisos por módulo y acción disponibles para el colegio. |
+| GET | `/api/v1/auditoria?usuario_id=&evento=&entidad=&fecha_desde=AAAA-MM-DD&fecha_hasta=AAAA-MM-DD` | Auditoría paginada del colegio; acceso restringido a Director y Administrador. |
+
+No existe endpoint para eliminar usuarios ni para modificar o eliminar auditorías. Los registros de auditoría omiten contraseñas y tokens. La sesión SPA vence tras 30 minutos de inactividad por defecto; se configura con `SESSION_LIFETIME` sin afectar los tokens móviles.
+
 Las pruebas usan la base `sge_test` configurada en `phpunit.xml`. Ejecuta las verificaciones con:
 
 ```powershell
