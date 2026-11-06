@@ -10,7 +10,7 @@ trait Auditable
 {
     protected static function bootAuditable(): void
     {
-        static::created(static function (Usuario $model): void {
+        static::created(static function (self $model): void {
             $usuario = Auth::user();
 
             if (! $usuario instanceof Usuario) {
@@ -29,7 +29,7 @@ trait Auditable
             );
         });
 
-        static::updated(static function (Usuario $model): void {
+        static::updated(static function (self $model): void {
             $usuario = Auth::user();
 
             if (! $usuario instanceof Usuario) {
@@ -45,9 +45,9 @@ trait Auditable
 
             $anteriores = array_intersect_key($model->getOriginal(), $cambios);
             $evento = match ($cambios['activo'] ?? null) {
-                false, 0, '0' => 'usuarios.desactivado',
-                true, 1, '1' => 'usuarios.reactivado',
-                default => 'usuarios.actualizado',
+                false, 0, '0' => $model->entidadAuditable().'.desactivado',
+                true, 1, '1' => $model->entidadAuditable().'.reactivado',
+                default => $model->entidadAuditable().'.actualizado',
             };
 
             app(RegistrarAuditoria::class)->registrar(

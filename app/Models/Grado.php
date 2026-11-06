@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToColegio;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Grado extends Model
 {
-    use BelongsToColegio, HasFactory;
+    use Auditable, BelongsToColegio, HasFactory;
 
     protected $table = 'grados';
 
@@ -45,5 +46,23 @@ class Grado extends Model
     public function secciones(): HasMany
     {
         return $this->hasMany(Seccion::class, 'grado_id');
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function atributosAuditables(): array
+    {
+        return ['nivel_id', 'nombre', 'orden', 'activo'];
+    }
+
+    protected function eventoAuditableCreado(): string
+    {
+        return 'grados.creado';
+    }
+
+    protected function entidadAuditable(): string
+    {
+        return 'grados';
     }
 }

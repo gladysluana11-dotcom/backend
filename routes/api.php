@@ -1,11 +1,22 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AlumnoController;
+use App\Http\Controllers\Api\V1\AnioEscolarController;
+use App\Http\Controllers\Api\V1\AsignacionDocenteController;
 use App\Http\Controllers\Api\V1\AuditoriaController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ColegioController;
+use App\Http\Controllers\Api\V1\ConfiguracionColegioController;
+use App\Http\Controllers\Api\V1\CursoController;
+use App\Http\Controllers\Api\V1\FuncionColegioController;
+use App\Http\Controllers\Api\V1\GradoController;
+use App\Http\Controllers\Api\V1\ImportacionAcademicaController;
+use App\Http\Controllers\Api\V1\NivelController;
+use App\Http\Controllers\Api\V1\PeriodoController;
 use App\Http\Controllers\Api\V1\PermisoController;
 use App\Http\Controllers\Api\V1\RolController;
+use App\Http\Controllers\Api\V1\SeccionController;
+use App\Http\Controllers\Api\V1\UnidadDidacticaController;
 use App\Http\Controllers\Api\V1\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +58,38 @@ Route::prefix('v1')->group(function () {
 
             Route::get('/alumnos/{id}', [AlumnoController::class, 'show'])->middleware('permission:alumnos.ver');
             Route::patch('/alumnos/{id}', [AlumnoController::class, 'update'])->middleware('permission:alumnos.editar');
+
+            Route::apiResource('anios-escolares', AnioEscolarController::class)
+                ->only(['index', 'show', 'store', 'update'])
+                ->parameters(['anios-escolares' => 'anio_escolar']);
+            Route::post('/anios-escolares/{anio_escolar}/abrir', [AnioEscolarController::class, 'abrir']);
+            Route::post('/anios-escolares/{anio_escolar}/cerrar', [AnioEscolarController::class, 'cerrar']);
+
+            Route::apiResource('niveles', NivelController::class)
+                ->parameters(['niveles' => 'nivel']);
+            Route::apiResource('grados', GradoController::class)
+                ->parameters(['grados' => 'grado']);
+            Route::apiResource('secciones', SeccionController::class)
+                ->parameters(['secciones' => 'seccion']);
+            Route::apiResource('cursos', CursoController::class)
+                ->parameters(['cursos' => 'curso']);
+            Route::apiResource('periodos', PeriodoController::class)
+                ->parameters(['periodos' => 'periodo']);
+            Route::apiResource('unidades-didacticas', UnidadDidacticaController::class)
+                ->parameters(['unidades-didacticas' => 'unidad_didactica']);
+
+            Route::get('/asignaciones-docentes/mias', [AsignacionDocenteController::class, 'misAsignaciones']);
+            Route::apiResource('asignaciones-docentes', AsignacionDocenteController::class)
+                ->parameters(['asignaciones-docentes' => 'asignacion']);
+
+            Route::get('/configuracion', [ConfiguracionColegioController::class, 'show']);
+            Route::put('/configuracion', [ConfiguracionColegioController::class, 'update']);
+            Route::get('/funciones', [FuncionColegioController::class, 'show']);
+            Route::put('/funciones', [FuncionColegioController::class, 'update']);
+
+            Route::get('/importaciones/estructura-academica/plantilla', [ImportacionAcademicaController::class, 'plantilla']);
+            Route::post('/importaciones/estructura-academica/validar', [ImportacionAcademicaController::class, 'validar']);
+            Route::post('/importaciones/estructura-academica/confirmar', [ImportacionAcademicaController::class, 'confirmar']);
         });
     });
 });

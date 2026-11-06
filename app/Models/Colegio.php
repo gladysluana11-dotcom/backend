@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Colegio extends Model
 {
@@ -46,5 +47,20 @@ class Colegio extends Model
     public function niveles(): HasMany
     {
         return $this->hasMany(Nivel::class, 'colegio_id');
+    }
+
+    public function cursos(): HasMany
+    {
+        return $this->hasMany(Curso::class, 'colegio_id');
+    }
+
+    public function configuracion(): HasOne
+    {
+        return $this->hasOne(ConfiguracionColegio::class, 'colegio_id');
+    }
+
+    public function funciones(): HasOne
+    {
+        return $this->hasOne(FuncionColegio::class, 'colegio_id');
     }
 }

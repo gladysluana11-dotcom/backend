@@ -64,6 +64,28 @@ Todos los endpoints requieren autenticación, salvo los de acceso y recuperació
 
 No existe endpoint para eliminar usuarios ni para modificar o eliminar auditorías. Los registros de auditoría omiten contraseñas y tokens. La sesión SPA vence tras 30 minutos de inactividad por defecto; se configura con `SESSION_LIFETIME` sin afectar los tokens móviles.
 
+### Configuración académica y del colegio (B3)
+
+Todos los endpoints requieren autenticación y operan sobre el colegio del usuario autenticado; el cliente no envía `colegio_id`. Las colecciones académicas aceptan `page`, `per_page` (máximo 100), `sort`, `direction`, `buscar` y `activo`, además de filtros por relación.
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| GET, POST | `/api/v1/anios-escolares` | Lista años escolares o crea uno inactivo. |
+| GET, PUT | `/api/v1/anios-escolares/{id}` | Consulta o edita un año que no esté cerrado. |
+| POST | `/api/v1/anios-escolares/{id}/abrir` | Abre el año; solo puede haber uno activo por colegio. |
+| POST | `/api/v1/anios-escolares/{id}/cerrar` | Cierra el año e impide cambios posteriores a su estructura. |
+| GET, POST; GET, PUT, DELETE | `/api/v1/niveles`, `/grados`, `/secciones`, `/cursos` | CRUD de estructura; `DELETE` desactiva el registro. Las secciones reciben `anio_escolar_id` y `capacidad`. |
+| GET, POST; GET, PUT, DELETE | `/api/v1/periodos`, `/unidades-didacticas` | CRUD con fechas y orden; las unidades del mismo periodo no pueden solaparse. |
+| GET, POST; GET, PUT, DELETE | `/api/v1/asignaciones-docentes` | Gestiona asignaciones únicas por curso, sección y año. El docente debe pertenecer al mismo colegio. |
+| GET | `/api/v1/asignaciones-docentes/mias` | Devuelve las asignaciones activas del docente autenticado. |
+| GET, PUT | `/api/v1/configuracion` | Lee o actualiza cuotas, vencimiento, series de recibos, frecuencia de avances y recargo por mora. |
+| GET, PUT | `/api/v1/funciones` | Lee o cambia funciones activables; la escritura requiere Director o Administrador. |
+| GET | `/api/v1/importaciones/estructura-academica/plantilla` | Descarga la plantilla Excel. |
+| POST | `/api/v1/importaciones/estructura-academica/validar` | Valida un archivo XLSX o CSV (`archivo`, `anio_escolar_id`) sin aplicar cambios. Máximo 2 MB y 1000 filas de datos. |
+| POST | `/api/v1/importaciones/estructura-academica/confirmar` | Confirma con el `token` devuelto por la validación; el token vence en 15 minutos y solo aplica al archivo almacenado. |
+
+Las respuestas de las colecciones incluyen `data` y `paginacion`. Los cambios de años, estructura, configuración y funciones se registran en auditoría. La especificación OpenAPI se genera con Scramble y está disponible en `/docs/api` cuando `APP_ENV=local`.
+
 Las pruebas usan la base `sge_test` configurada en `phpunit.xml`. Ejecuta las verificaciones con:
 
 ```powershell
