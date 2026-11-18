@@ -32,7 +32,7 @@ class GenerarFichaMatricula
         ])->setPaper('a4')->download('ficha-matricula-'.$matricula->id.'.pdf');
     }
 
-    private function logoData(?string $ruta): ?string
+    public function logoData(?string $ruta): ?string
     {
         if ($ruta === null || $ruta === '') {
             return null;

@@ -19,6 +19,7 @@ class GestionarConfiguracionColegio
             [
                 'numero_cuotas_pension' => 10,
                 'dia_vencimiento' => 5,
+                'dias_alerta_cuotas' => 5,
                 'serie_recibos' => 'R001',
                 'frecuencia_registro_avance' => 'semanal',
                 'recargo_mora_activo' => false,

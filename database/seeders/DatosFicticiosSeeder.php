@@ -9,18 +9,25 @@ use App\Models\AsignacionDocente;
 use App\Models\AsignacionSeccion;
 use App\Models\Colegio;
 use App\Models\ConfiguracionColegio;
+use App\Models\Cuota;
 use App\Models\Curso;
 use App\Models\FuncionColegio;
+use App\Models\GestionCobranza;
 use App\Models\Grado;
 use App\Models\HistorialEstadoAlumno;
 use App\Models\HistorialMatricula;
 use App\Models\Matricula;
 use App\Models\Nivel;
+use App\Models\Pago;
 use App\Models\Periodo;
 use App\Models\Seccion;
+use App\Models\Tarifa;
 use App\Models\UnidadDidactica;
 use App\Models\Usuario;
+use App\Services\GenerarCuotas;
+use App\Services\RegistrarPago;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
@@ -58,6 +65,7 @@ class DatosFicticiosSeeder extends Seeder
             [
                 'numero_cuotas_pension' => 10,
                 'dia_vencimiento' => 5,
+                'dias_alerta_cuotas' => 5,
                 'serie_recibos' => 'R001',
                 'frecuencia_registro_avance' => 'semanal',
                 'recargo_mora_activo' => false,
@@ -130,6 +138,25 @@ class DatosFicticiosSeeder extends Seeder
                         'nombre' => $nombreGrado,
                     ],
                     ['orden' => $ordenGrado + 1],
+                );
+                $montosPorNivel = [
+                    'Inicial' => ['matricula' => '250.00', 'pension' => '300.00'],
+                    'Primaria' => ['matricula' => '300.00', 'pension' => '350.00'],
+                    'Secundaria' => ['matricula' => '350.00', 'pension' => '400.00'],
+                ];
+                Tarifa::query()->firstOrCreate(
+                    [
+                        'colegio_id' => $colegio->id,
+                        'anio_escolar_id' => $anio->id,
+                        'grado_id' => $grado->id,
+                    ],
+                    [
+                        'monto_matricula' => $montosPorNivel[$ordenNivel]['matricula'],
+                        'monto_pension' => $montosPorNivel[$ordenNivel]['pension'],
+                        'numero_cuotas' => 10,
+                        'dia_vencimiento' => 5,
+                        'mes_primera_pension' => 3,
+                    ],
                 );
 
                 foreach (['A', 'B'] as $nombreSeccion) {
@@ -332,6 +359,65 @@ class DatosFicticiosSeeder extends Seeder
                     'fecha' => '2026-03-02',
                     'usuario_id' => $director->id,
                 ]);
+            }
+        }
+
+        $generarCuotas = app(GenerarCuotas::class);
+        Matricula::query()
+            ->where('colegio_id', $colegio->id)
+            ->where('anio_escolar_id', $anio->id)
+            ->where('estado', 'matriculado')
+            ->orderBy('id')
+            ->get()
+            ->each(fn (Matricula $matricula) => $generarCuotas->generar($matricula));
+
+        if (! Pago::query()->where('colegio_id', $colegio->id)->where('observacion', 'Pago ficticio de ejemplo')->exists()) {
+            Auth::login($director);
+
+            try {
+                app(RegistrarPago::class)->registrar($director, [
+                    'matricula_id' => Matricula::query()
+                        ->where('colegio_id', $colegio->id)
+                        ->where('estado', 'matriculado')
+                        ->orderBy('id')
+                        ->value('id'),
+                    'fecha_pago' => today()->toDateString(),
+                    'monto' => '100.00',
+                    'medio' => 'efectivo',
+                    'observacion' => 'Pago ficticio de ejemplo',
+                ], 'seed-b5b-'.$colegio->id);
+            } finally {
+                Auth::logout();
+            }
+        }
+
+        $alumnoConCuotaVencida = Cuota::query()
+            ->where('colegio_id', $colegio->id)
+            ->whereNull('anulada_en')
+            ->where('vencimiento', '<', today()->toDateString())
+            ->orderBy('id')
+            ->value('alumno_id');
+
+        if ($alumnoConCuotaVencida !== null
+            && ! GestionCobranza::query()
+                ->where('colegio_id', $colegio->id)
+                ->where('alumno_id', $alumnoConCuotaVencida)
+                ->where('resultado', 'Seguimiento ficticio')
+                ->exists()) {
+            Auth::login($director);
+
+            try {
+                GestionCobranza::query()->create([
+                    'colegio_id' => $colegio->id,
+                    'alumno_id' => $alumnoConCuotaVencida,
+                    'usuario_id' => $director->id,
+                    'fecha' => today()->toDateString(),
+                    'medio_contacto' => 'llamada',
+                    'resultado' => 'Seguimiento ficticio',
+                    'observacion' => 'Registro de ejemplo para pruebas del sistema.',
+                ]);
+            } finally {
+                Auth::logout();
             }
         }
 

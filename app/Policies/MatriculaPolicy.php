@@ -83,6 +83,13 @@ class MatriculaPolicy
         return $this->update($usuario, $matricula);
     }
 
+    public function generateQuotas(Usuario $usuario, Matricula $matricula): bool
+    {
+        return $matricula->colegio_id === $usuario->colegio_id
+            && $usuario->hasAnyRole(['Director', 'Tesorería'])
+            && $usuario->hasPermissionTo('pagos.registrar', 'web');
+    }
+
     public function authorizeOverCapacity(Usuario $usuario): bool
     {
         return $usuario->colegio_id !== null

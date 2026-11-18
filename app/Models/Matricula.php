@@ -9,6 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read Alumno $alumno
+ * @property-read AnioEscolar|null $anioEscolar
+ * @property-read Grado|null $gradoRegistro
+ * @property-read Seccion|null $seccionRegistro
+ * @property-read int $documentos_pendientes
+ */
 class Matricula extends Model
 {
     use Auditable, BelongsToColegio, HasFactory;
@@ -86,6 +93,18 @@ class Matricula extends Model
     public function documentos(): HasMany
     {
         return $this->hasMany(MatriculaDocumento::class, 'matricula_id');
+    }
+
+    /** @return HasMany<Cuota, $this> */
+    public function cuotas(): HasMany
+    {
+        return $this->hasMany(Cuota::class, 'matricula_id');
+    }
+
+    /** @return HasMany<Pago, $this> */
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(Pago::class, 'matricula_id');
     }
 
     /** @return HasMany<HistorialMatricula, $this> */

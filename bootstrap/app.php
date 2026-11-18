@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\ConflictoIdempotencia;
 use App\Http\Middleware\ControlarInactividadSpa;
 use App\Http\Middleware\EstablecerEquipoDePermisos;
 use App\Http\Middleware\RequiereCambioContrasena;
@@ -76,6 +77,19 @@ return Application::configure(basePath: dirname(__DIR__))
                 'errors' => null,
                 'code' => 'FORBIDDEN',
             ], 403);
+        });
+
+        $exceptions->render(function (ConflictoIdempotencia $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'data' => null,
+                'errors' => null,
+                'code' => 'IDEMPOTENCY_CONFLICT',
+            ], 409);
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) {

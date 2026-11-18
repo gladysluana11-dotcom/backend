@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AlertaCuotaController;
 use App\Http\Controllers\Api\V1\AlumnoController;
 use App\Http\Controllers\Api\V1\AnioEscolarController;
 use App\Http\Controllers\Api\V1\ApoderadoController;
@@ -7,23 +8,33 @@ use App\Http\Controllers\Api\V1\AsignacionDocenteController;
 use App\Http\Controllers\Api\V1\AsignacionSeccionController;
 use App\Http\Controllers\Api\V1\AuditoriaController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CajaController;
 use App\Http\Controllers\Api\V1\ColegioController;
 use App\Http\Controllers\Api\V1\ConfiguracionColegioController;
+use App\Http\Controllers\Api\V1\CuotaController;
 use App\Http\Controllers\Api\V1\CursoController;
+use App\Http\Controllers\Api\V1\DescuentoController;
+use App\Http\Controllers\Api\V1\DeudaController;
 use App\Http\Controllers\Api\V1\DocumentoRequeridoController;
+use App\Http\Controllers\Api\V1\EstadoCuentaController;
 use App\Http\Controllers\Api\V1\FuncionColegioController;
+use App\Http\Controllers\Api\V1\GestionCobranzaController;
 use App\Http\Controllers\Api\V1\GradoController;
 use App\Http\Controllers\Api\V1\ImportacionAcademicaController;
 use App\Http\Controllers\Api\V1\ImportacionAlumnoController;
 use App\Http\Controllers\Api\V1\MatriculaController;
 use App\Http\Controllers\Api\V1\MatriculaDocumentoController;
 use App\Http\Controllers\Api\V1\NivelController;
+use App\Http\Controllers\Api\V1\PagoController;
 use App\Http\Controllers\Api\V1\PeriodoController;
 use App\Http\Controllers\Api\V1\PermisoController;
+use App\Http\Controllers\Api\V1\ReporteController;
 use App\Http\Controllers\Api\V1\RolController;
 use App\Http\Controllers\Api\V1\SeccionController;
+use App\Http\Controllers\Api\V1\TarifaController;
 use App\Http\Controllers\Api\V1\UnidadDidacticaController;
 use App\Http\Controllers\Api\V1\UsuarioController;
+use App\Http\Controllers\Api\V1\VoucherPagoController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -88,12 +99,70 @@ Route::prefix('v1')->group(function () {
             Route::post('/matriculas', [MatriculaController::class, 'store'])->middleware('permission:matriculas.gestionar');
             Route::get('/matriculas/{matricula}/ficha', [MatriculaController::class, 'ficha'])
                 ->middleware('permission:matriculas.ver');
+            Route::get('/matriculas/{matricula}/cuotas', [CuotaController::class, 'porMatricula']);
+            Route::post('/matriculas/{matricula}/generar-cuotas', [CuotaController::class, 'generar']);
+            Route::post('/matriculas/{matricula}/descuentos', [DescuentoController::class, 'storeMatricula']);
             Route::post('/matriculas/{matricula}/estado', [MatriculaController::class, 'cambiarEstado'])
                 ->middleware('permission:matriculas.gestionar');
             Route::post('/matriculas/{matricula}/cambiar-seccion', [MatriculaController::class, 'cambiarSeccion'])
                 ->middleware('permission:matriculas.gestionar');
             Route::get('/matriculas/{matricula}', [MatriculaController::class, 'show'])
                 ->middleware('permission:matriculas.ver');
+
+            Route::get('/alumnos/{alumno}/estado-cuenta', [EstadoCuentaController::class, 'show'])
+                ->middleware('permission:pagos.ver');
+            Route::get('/alumnos/{alumno}/estado-cuenta/pdf', [EstadoCuentaController::class, 'pdf'])
+                ->middleware('permission:pagos.ver');
+            Route::get('/alumnos/{alumno}/gestiones-cobranza', [GestionCobranzaController::class, 'index'])
+                ->middleware('permission:cobranza.gestionar');
+            Route::post('/alumnos/{alumno}/gestiones-cobranza', [GestionCobranzaController::class, 'store'])
+                ->middleware('permission:cobranza.gestionar');
+
+            Route::get('/deudas/por-aula', [DeudaController::class, 'porAula'])
+                ->middleware('permission:deudas.ver');
+            Route::get('/deudas', [DeudaController::class, 'index'])
+                ->middleware('permission:deudas.ver');
+            Route::get('/alertas/cuotas', [AlertaCuotaController::class, 'index'])
+                ->middleware('permission:deudas.ver');
+
+            Route::get('/reportes/matriculas', [ReporteController::class, 'matriculas'])
+                ->middleware('permission:reportes.ver');
+            Route::get('/reportes/pagos', [ReporteController::class, 'pagos'])
+                ->middleware('permission:reportes.ver');
+            Route::get('/reportes/ingresos-mensuales', [ReporteController::class, 'ingresosMensuales'])
+                ->middleware('permission:reportes.ver');
+            Route::get('/reportes/dashboard', [ReporteController::class, 'dashboard'])
+                ->middleware('permission:reportes.ver');
+
+            Route::apiResource('tarifas', TarifaController::class)
+                ->only(['index', 'show', 'store', 'update', 'destroy'])
+                ->parameters(['tarifas' => 'tarifa']);
+            Route::get('/cuotas', [CuotaController::class, 'index']);
+            Route::post('/cuotas/{cuota}/descuentos', [DescuentoController::class, 'storeCuota']);
+            Route::post('/descuentos/{descuento}/anular', [DescuentoController::class, 'anular']);
+
+            Route::get('/pagos', [PagoController::class, 'index'])->middleware('permission:pagos.ver');
+            Route::post('/pagos', [PagoController::class, 'store'])
+                ->middleware(['permission:pagos.registrar', 'throttle:pagos-escritura'])
+                ->name('api.v1.pagos.store');
+            Route::get('/pagos/{pago}/constancia', [PagoController::class, 'constancia'])
+                ->middleware('permission:pagos.ver')
+                ->name('api.v1.pagos.constancia');
+            Route::post('/pagos/{pago}/anular', [PagoController::class, 'anular'])
+                ->middleware(['permission:pagos.anular', 'throttle:pagos-escritura']);
+            Route::post('/pagos/{pago}/voucher', [VoucherPagoController::class, 'store'])
+                ->middleware(['permission:pagos.registrar', 'throttle:pagos-escritura'])
+                ->name('api.v1.pagos.voucher.store');
+            Route::get('/pagos/{pago}/voucher', [VoucherPagoController::class, 'show'])
+                ->middleware('permission:pagos.ver')
+                ->name('api.v1.pagos.voucher');
+            Route::get('/pagos/{pago}', [PagoController::class, 'show'])
+                ->middleware('permission:pagos.ver');
+
+            Route::get('/caja/resumen', [CajaController::class, 'resumen'])
+                ->middleware('permission:pagos.ver');
+            Route::post('/caja/cierres', [CajaController::class, 'cerrar'])
+                ->middleware(['permission:caja.cerrar', 'throttle:pagos-escritura']);
 
             Route::get('/documentos-requeridos', [DocumentoRequeridoController::class, 'index'])
                 ->middleware('permission:matriculas.ver');

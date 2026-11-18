@@ -9,6 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read string $nombre
+ * @property-read Nivel|null $nivel
+ */
 class Grado extends Model
 {
     use Auditable, BelongsToColegio, HasFactory;
@@ -46,6 +50,12 @@ class Grado extends Model
     public function secciones(): HasMany
     {
         return $this->hasMany(Seccion::class, 'grado_id');
+    }
+
+    /** @return HasMany<Tarifa, $this> */
+    public function tarifas(): HasMany
+    {
+        return $this->hasMany(Tarifa::class, 'grado_id');
     }
 
     /**

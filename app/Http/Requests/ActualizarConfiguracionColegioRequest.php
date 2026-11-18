@@ -21,7 +21,8 @@ class ActualizarConfiguracionColegioRequest extends FormRequest
     {
         return [
             'numero_cuotas_pension' => ['sometimes', 'required', 'integer', 'min:1', 'max:12'],
-            'dia_vencimiento' => ['sometimes', 'required', 'integer', 'min:1', 'max:31'],
+            'dia_vencimiento' => ['sometimes', 'required', 'integer', 'min:1', 'max:28'],
+            'dias_alerta_cuotas' => ['sometimes', 'required', 'integer', 'min:1', 'max:30'],
             'serie_recibos' => ['sometimes', 'required', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/'],
             'frecuencia_registro_avance' => [
                 'sometimes',

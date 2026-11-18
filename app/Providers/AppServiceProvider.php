@@ -2,30 +2,46 @@
 
 namespace App\Providers;
 
+use App\Contracts\ConsultarAplicacionesPago;
 use App\Models\Alumno;
 use App\Models\AnioEscolar;
 use App\Models\Apoderado;
 use App\Models\AsignacionDocente;
 use App\Models\AsignacionSeccion;
+use App\Models\CierreCaja;
 use App\Models\ConfiguracionColegio;
+use App\Models\Cuota;
 use App\Models\Curso;
+use App\Models\Descuento;
 use App\Models\DocumentoRequerido;
 use App\Models\FuncionColegio;
+use App\Models\GestionCobranza;
 use App\Models\Grado;
 use App\Models\ImportacionAcademica;
 use App\Models\Matricula;
 use App\Models\Nivel;
+use App\Models\Pago;
 use App\Models\Periodo;
 use App\Models\Seccion;
+use App\Models\Tarifa;
 use App\Models\UnidadDidactica;
 use App\Models\Usuario;
 use App\Policies\AcademicoPolicy;
 use App\Policies\AlumnoPolicy;
 use App\Policies\ApoderadoPolicy;
+use App\Policies\CierreCajaPolicy;
 use App\Policies\ConfiguracionColegioPolicy;
+use App\Policies\CuotaPolicy;
+use App\Policies\DescuentoPolicy;
+use App\Policies\DeudaPolicy;
 use App\Policies\DocumentoRequeridoPolicy;
 use App\Policies\FuncionColegioPolicy;
+use App\Policies\GestionCobranzaPolicy;
 use App\Policies\MatriculaPolicy;
+use App\Policies\PagoPolicy;
+use App\Policies\ReportePolicy;
+use App\Policies\TarifaPolicy;
+use App\Services\ConsultarAplicacionesPagoPersistido;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -41,7 +57,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(ConsultarAplicacionesPago::class, ConsultarAplicacionesPagoPersistido::class);
     }
 
     /**
@@ -68,8 +84,16 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Alumno::class, AlumnoPolicy::class);
         Gate::policy(Apoderado::class, ApoderadoPolicy::class);
         Gate::policy(Matricula::class, MatriculaPolicy::class);
+        Gate::policy(Tarifa::class, TarifaPolicy::class);
+        Gate::policy(Cuota::class, CuotaPolicy::class);
+        Gate::policy(Descuento::class, DescuentoPolicy::class);
+        Gate::policy(Pago::class, PagoPolicy::class);
+        Gate::policy(CierreCaja::class, CierreCajaPolicy::class);
         Gate::policy(AsignacionSeccion::class, AcademicoPolicy::class);
         Gate::policy(DocumentoRequerido::class, DocumentoRequeridoPolicy::class);
+        Gate::policy(GestionCobranza::class, GestionCobranzaPolicy::class);
+        Gate::define('ver-deudas', [DeudaPolicy::class, 'viewAny']);
+        Gate::define('ver-reporte', [ReportePolicy::class, 'view']);
 
         ResetPassword::createUrlUsing(function (Usuario $usuario, string $token): string {
             $query = http_build_query([
@@ -90,6 +114,12 @@ class AppServiceProvider extends ServiceProvider
             $email = Str::lower($request->string('email')->toString());
 
             return Limit::perMinute(3)->by($email.'|'.$request->ip());
+        });
+
+        RateLimiter::for('pagos-escritura', function (Request $request): Limit {
+            $usuarioId = $request->user()?->getAuthIdentifier() ?? $request->ip();
+
+            return Limit::perMinute(30)->by($request->user()?->colegio_id.'|'.$usuarioId);
         });
     }
 }

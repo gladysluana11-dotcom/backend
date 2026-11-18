@@ -55,6 +55,12 @@ class AnioEscolar extends Model
         return $this->hasMany(AsignacionDocente::class, 'anio_escolar_id');
     }
 
+    /** @return HasMany<Tarifa, $this> */
+    public function tarifas(): HasMany
+    {
+        return $this->hasMany(Tarifa::class, 'anio_escolar_id');
+    }
+
     /**
      * @return list<string>
      */

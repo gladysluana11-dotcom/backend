@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * @property-read Pivot $pivot
+ * @property-read string $nombre
+ * @property-read string $apellido
  */
 class Alumno extends Model
 {
@@ -40,6 +42,7 @@ class Alumno extends Model
         'activo' => 'boolean',
     ];
 
+    /** @return BelongsTo<Colegio, $this> */
     public function colegio(): BelongsTo
     {
         return $this->belongsTo(Colegio::class, 'colegio_id');
@@ -64,6 +67,12 @@ class Alumno extends Model
     public function historialEstados(): HasMany
     {
         return $this->hasMany(HistorialEstadoAlumno::class, 'alumno_id');
+    }
+
+    /** @return HasMany<GestionCobranza, $this> */
+    public function gestionesCobranza(): HasMany
+    {
+        return $this->hasMany(GestionCobranza::class, 'alumno_id');
     }
 
     /**

@@ -18,6 +18,7 @@ class ConfiguracionColegio extends Model
         'colegio_id',
         'numero_cuotas_pension',
         'dia_vencimiento',
+        'dias_alerta_cuotas',
         'serie_recibos',
         'frecuencia_registro_avance',
         'recargo_mora_activo',
@@ -29,6 +30,7 @@ class ConfiguracionColegio extends Model
             'colegio_id' => 'integer',
             'numero_cuotas_pension' => 'integer',
             'dia_vencimiento' => 'integer',
+            'dias_alerta_cuotas' => 'integer',
             'recargo_mora_activo' => 'boolean',
         ];
     }
@@ -46,6 +48,7 @@ class ConfiguracionColegio extends Model
         return [
             'numero_cuotas_pension',
             'dia_vencimiento',
+            'dias_alerta_cuotas',
             'serie_recibos',
             'frecuencia_registro_avance',
             'recargo_mora_activo',

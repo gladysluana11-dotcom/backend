@@ -15,6 +15,7 @@ class ConfiguracionColegioResource extends JsonResource
         return [
             'numero_cuotas_pension' => $this->numero_cuotas_pension,
             'dia_vencimiento' => $this->dia_vencimiento,
+            'dias_alerta_cuotas' => $this->dias_alerta_cuotas,
             'serie_recibos' => $this->serie_recibos,
             'frecuencia_registro_avance' => $this->frecuencia_registro_avance,
             'recargo_mora_activo' => $this->recargo_mora_activo,
