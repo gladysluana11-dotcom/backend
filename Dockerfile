@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Permitir que PHP-FPM lea las variables de entorno de Render
+RUN echo "clear_env = no" >> /usr/local/etc/php-fpm.d/www.conf
+
 # Instalar Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
