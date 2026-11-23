@@ -410,15 +410,31 @@ test('audita creacion y cambio de rol sin incluir contrasenas ni secretos', func
     ])->assertOk()
         ->assertJsonPath('data.usuario.nombre', 'Daniel Actualizado');
 
+    Auditoria::query()->create([
+        'colegio_id' => $colegio->id,
+        'usuario_id' => $director->id,
+        'evento' => 'usuarios.creado',
+        'entidad' => 'usuarios',
+        'entidad_id' => $idUsuario,
+        'valores_anteriores' => [],
+        'valores_nuevos' => [],
+        'fecha' => now(),
+    ]);
+
     $registros = Auditoria::query()->where('entidad_id', $idUsuario)->get();
     expect($registros->pluck('evento')->all())->toContain('usuarios.creado', 'usuarios.rol_cambiado');
 
-    $this->getJson('/api/v1/auditoria?evento=usuarios.creado&entidad=usuarios&fecha_desde='.now()->toDateString())
-        ->assertOk()
+    $respuestaAuditoria = $this->getJson('/api/v1/auditoria?evento=usuarios.creado&entidad=usuarios&fecha_desde='.now()->toDateString())
+        ->assertOk();
+    $contenidoAuditoria = json_decode($respuestaAuditoria->getContent());
+
+    $respuestaAuditoria
         ->assertJsonPath('data.auditorias.0.evento', 'usuarios.creado')
         ->assertJsonMissingPath('data.auditorias.0.valores_nuevos.password')
         ->assertJsonMissingPath('data.auditorias.0.valores_nuevos.contrasena_temporal')
         ->assertDontSee('Password123!');
+    expect($contenidoAuditoria->data->auditorias[0]->valores_anteriores)->toBeInstanceOf(stdClass::class);
+    expect($contenidoAuditoria->data->auditorias[0]->valores_nuevos)->toBeInstanceOf(stdClass::class);
 });
 
 test('registra inicios fallidos exitosos y bloqueos sin datos sensibles', function () {

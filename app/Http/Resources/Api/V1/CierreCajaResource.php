@@ -19,7 +19,7 @@ class CierreCajaResource extends JsonResource
             'fecha' => $this->fecha->toDateString(),
             'observacion' => $this->observacion,
             'total' => $this->total,
-            'resumen' => $this->resumen,
+            'resumen' => (object) $this->resumen,
             'usuario_id' => $this->usuario_id,
         ];
     }

@@ -375,6 +375,18 @@ it('devuelve 422 para vouchers inválidos y permite descargar el archivo privado
         ->assertJsonValidationErrors('fecha');
 });
 
+it('serializa los agrupamientos vacíos de caja como listas JSON', function (): void {
+    $escenario = prepararEscenarioPagosB5b('caja-sin-pagos');
+    $this->actingAs($escenario['usuario']);
+
+    $respuesta = $this->getJson('/api/v1/caja/resumen?fecha='.today()->toDateString())
+        ->assertOk();
+    $contenido = json_decode($respuesta->getContent());
+
+    expect($contenido->data->por_usuario)->toBeArray()->toBeEmpty();
+    expect($contenido->data->por_medio)->toBeArray()->toBeEmpty();
+});
+
 it('limita a treinta escrituras de pago por minuto y devuelve el error común 429', function (): void {
     $escenario = prepararEscenarioPagosB5b('limite-pagos');
     $this->actingAs($escenario['usuario']);

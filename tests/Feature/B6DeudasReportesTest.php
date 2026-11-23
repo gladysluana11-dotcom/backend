@@ -422,6 +422,26 @@ it('exporta todos los reportes en JSON, PDF y XLSX con autorización', function 
     'dashboard XLSX' => ['/reportes/dashboard', 'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
 ]);
 
+it('serializa los filtros de cada reporte como objetos JSON sin filtros de consulta', function (string $ruta): void {
+    $escenario = prepararEscenarioB6('filtros-'.str_replace('/', '-', $ruta));
+    $this->actingAs($escenario['usuario']);
+
+    $respuesta = $this->getJson('/api/v1'.$ruta)->assertOk();
+    $contenido = json_decode($respuesta->getContent());
+
+    expect($contenido->data->filtros)->toBeInstanceOf(stdClass::class);
+
+    if ($ruta === '/reportes/pagos') {
+        expect($contenido->data->filas)->toBeArray()->toBeEmpty();
+    }
+})->with([
+    'matrículas' => ['/reportes/matriculas'],
+    'pagos' => ['/reportes/pagos'],
+    'ingresos mensuales' => ['/reportes/ingresos-mensuales'],
+    'dashboard' => ['/reportes/dashboard'],
+    'deudas por aula' => ['/deudas/por-aula'],
+]);
+
 it('calcula el contenido de matrículas, pagos, ingresos mensuales y dashboard', function (): void {
     $escenario = prepararEscenarioB6('reportes-calculos');
     registrarPagoReporteB6($escenario);

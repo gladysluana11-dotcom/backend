@@ -24,7 +24,7 @@ class ColegioController
             'data' => [
                 'nombre' => $colegio->nombre,
                 'logo' => $colegio->logo,
-                'colores' => $colegio->colores ?? [],
+                'colores' => (object) ($colegio->colores ?? []),
             ],
             'errors' => null,
             'code' => 'OK',

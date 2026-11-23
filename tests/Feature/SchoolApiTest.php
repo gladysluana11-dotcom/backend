@@ -265,3 +265,14 @@ test('el endpoint público solo expone identidad visual y responde con el format
         ->assertJsonMissingPath('data.id')
         ->assertJsonMissingPath('data.subdominio');
 });
+
+test('el endpoint público serializa colores vacíos como objeto JSON', function () {
+    $colegio = crearColegioPrueba('colores-vacios');
+    $colegio->update(['colores' => []]);
+
+    $respuesta = $this->getJson('/api/v1/publico/colegio?subdominio='.$colegio->subdominio)
+        ->assertOk();
+    $contenido = json_decode($respuesta->getContent());
+
+    expect($contenido->data->colores)->toBeInstanceOf(stdClass::class);
+});

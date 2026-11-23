@@ -75,7 +75,7 @@ class PagoController extends Controller
             (string) $request->header('Idempotency-Key'),
         );
 
-        return response()->json($resultado['respuesta'], 201);
+        return response()->json((object) $resultado['respuesta'], 201);
     }
 
     #[ScrambleResponse(status: 200, type: 'array{message:string,data:array{pago:PagoResource},errors:null,code:string}')]

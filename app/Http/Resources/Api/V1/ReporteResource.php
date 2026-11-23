@@ -12,6 +12,9 @@ class ReporteResource extends JsonResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        $datos = parent::toArray($request);
+        $datos['filtros'] = (object) ($datos['filtros'] ?? []);
+
+        return $datos;
     }
 }
