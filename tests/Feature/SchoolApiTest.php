@@ -70,6 +70,24 @@ test('el login SPA crea una sesión y no devuelve un token móvil', function () 
     $this->assertAuthenticatedAs($usuario, 'web');
 });
 
+test('el login usa el subdominio del cuerpo cuando el Origin pertenece al frontend configurado', function () {
+    config(['sge.frontend_url' => 'https://educa-sge.vercel.app']);
+
+    $colegio = crearColegioPrueba('salesian-innova');
+    $usuario = crearUsuarioPrueba($colegio, 'director@example.test', 'Director');
+
+    $this->withHeader('Origin', 'https://educa-sge.vercel.app')
+        ->postJson('/api/v1/auth/login', [
+            'email' => $usuario->email,
+            'password' => 'Password123!',
+            'subdominio' => $colegio->subdominio,
+        ])
+        ->assertOk()
+        ->assertJsonPath('code', 'OK');
+
+    $this->assertAuthenticatedAs($usuario, 'web');
+});
+
 test('el endpoint móvil emite un token Sanctum con vencimiento y el token autentica al usuario', function () {
     $colegio = crearColegioPrueba('salesian-innova');
     $usuario = crearUsuarioPrueba($colegio, 'docente@example.test', 'Docente');

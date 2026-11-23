@@ -308,8 +308,13 @@ class AuthController
     {
         $origin = $request->headers->get('origin');
         $host = $origin ? parse_url($origin, PHP_URL_HOST) : $request->getHost();
+        $frontendHost = parse_url(config('sge.frontend_url'), PHP_URL_HOST);
 
-        if (! is_string($host) || in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+        if (
+            ! is_string($host)
+            || in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+            || $host === $frontendHost
+        ) {
             return null;
         }
 
