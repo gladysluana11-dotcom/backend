@@ -200,7 +200,7 @@ class AuthController
             return $this->error('El usuario está desactivado.', 'USER_INACTIVE', 403);
         }
 
-        if (! $this->perteneceAlSubdominio($request, $usuario, $validated['subdominio'] ?? null)) {
+        if (! $this->perteneceAlSubdominio($request, $usuario, $validated['subdominio'] ?? null, $issueToken)) {
             $this->auditarLoginFallido($request, $usuario, $validated['subdominio'] ?? null, 'colegio_no_coincide');
 
             return $this->error('Credenciales inválidas.', 'INVALID_CREDENTIALS', 401);
@@ -278,11 +278,20 @@ class AuthController
         );
     }
 
-    private function perteneceAlSubdominio(Request $request, Usuario $usuario, ?string $subdominio): bool
-    {
+    private function perteneceAlSubdominio(
+        Request $request,
+        Usuario $usuario,
+        ?string $subdominio,
+        bool $priorizarSubdominioDelCuerpo = false,
+    ): bool {
         $subdominioOrigen = $this->subdominioDesdeOrigen($request);
 
-        if ($subdominioOrigen !== null && $subdominio !== null && $subdominioOrigen !== $subdominio) {
+        if (
+            ! $priorizarSubdominioDelCuerpo
+            && $subdominioOrigen !== null
+            && $subdominio !== null
+            && $subdominioOrigen !== $subdominio
+        ) {
             return false;
         }
 

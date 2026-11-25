@@ -110,6 +110,20 @@ test('el endpoint móvil emite un token Sanctum con vencimiento y el token auten
         ->assertJsonPath('data.usuario.email', $usuario->email);
 });
 
+test('el endpoint móvil prioriza el subdominio del cuerpo sobre Origin', function () {
+    $colegio = crearColegioPrueba('salesian-innova');
+    $usuario = crearUsuarioPrueba($colegio, 'docente@example.test', 'Docente');
+
+    $this->withHeader('Origin', 'https://otro-colegio.example.test')
+        ->postJson('/api/v1/auth/token', [
+            'email' => $usuario->email,
+            'password' => 'Password123!',
+            'subdominio' => $colegio->subdominio,
+        ])
+        ->assertOk()
+        ->assertJsonPath('code', 'OK');
+});
+
 test('el cierre de sesión móvil revoca el token actual', function () {
     $colegio = crearColegioPrueba('salesian-innova');
     $usuario = crearUsuarioPrueba($colegio, 'docente@example.test', 'Docente');
